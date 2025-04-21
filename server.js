@@ -53,4 +53,4 @@ app.get("/", (req, res) => {
 
 
 
-server.listen(port, () => console.log(`Server started on PORT:${port}`))
+server.listen(port, () => console.log(`Server started http://localhost:${port}`))
