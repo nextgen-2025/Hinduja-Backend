@@ -20,14 +20,39 @@ router.get('/', async (req, res) => {
 // POST add a new doctor
 router.post('/', async (req, res) => {
   try {
+    const { name, specialization, allSlots } = req.body;
+
+    // Validate required fields
+    if (!name || !specialization) {
+      return res.status(400).json({ message: "Name and specialization are required" });
+    }
+
+    // Validate slots
+    if (!Array.isArray(allSlots) || allSlots.length === 0) {
+      return res.status(400).json({ message: "At least one time slot must be selected" });
+    }
+
     const newDoctor = new DoctorSlot({
-      ...req.body,
-      allSlots: ALL_SLOTS,
+      name,
+      specialization,
+      allSlots,
       bookedSlots: []
     });
+
     const savedDoctor = await newDoctor.save();
+
+    // Get the io instance
+    const io = req.app.get('io');
+    
+    // Emit doctor added event
+    io.emit('doctor-added', {
+      doctorId: savedDoctor._id,
+      doctor: savedDoctor
+    });
+
     res.status(201).json(savedDoctor);
   } catch (error) {
+    console.error('Error adding doctor:', error);
     res.status(400).json({ message: error.message });
   }
 });
