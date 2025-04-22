@@ -16,7 +16,8 @@ const app = express()
 const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: "*"
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"]
   }
 })
 
@@ -24,7 +25,14 @@ const io = new Server(server, {
 app.set('io', io)
 
 const port = process.env.PORT || 4000
-connectDB()
+
+// Connect to MongoDB
+connectDB().catch(err => {
+  console.error("Failed to connect to MongoDB:", err);
+  process.exit(1);
+});
+
+// Connect to Cloudinary
 connectCloudinary()
 
 // middlewares
@@ -37,6 +45,12 @@ app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 app.use("/api/bookings", bookingRouter)
 app.use("/api/doctors", doctorsRouter)
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
+});
 
 // Real-time updates
 io.on('connection', socket => {
@@ -51,6 +65,7 @@ app.get("/", (req, res) => {
   res.send("API Working")
 });
 
-
-
-server.listen(port, () => console.log(`Server started http://localhost:${port}`))
+server.listen(port, () => {
+  console.log(`Server started on http://localhost:${port}`);
+  console.log(`Socket.IO server running on port ${port}`);
+});
