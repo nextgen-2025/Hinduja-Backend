@@ -32,6 +32,74 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT update a doctor
+router.put('/:id', async (req, res) => {
+  try {
+    const { name, specialization, allSlots } = req.body;
+    const doctor = await DoctorSlot.findById(req.params.id);
+    
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Update doctor fields
+    doctor.name = name;
+    doctor.specialization = specialization;
+    doctor.allSlots = allSlots;
+    
+    const updatedDoctor = await doctor.save();
+
+    // Get the io instance
+    const io = req.app.get('io');
+    
+    // Emit doctor update event
+    io.emit('doctor-update', {
+      doctorId: doctor._id,
+      updatedDoctor
+    });
+
+    res.json({
+      message: 'Doctor updated successfully',
+      doctor: updatedDoctor
+    });
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// DELETE a doctor
+router.delete('/:id', async (req, res) => {
+  try {
+    const doctor = await DoctorSlot.findById(req.params.id);
+    
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Delete all bookings associated with this doctor
+    await Booking.deleteMany({ doctorId: doctor._id });
+
+    // Delete the doctor
+    await DoctorSlot.findByIdAndDelete(req.params.id);
+
+    // Get the io instance
+    const io = req.app.get('io');
+    
+    // Emit doctor deleted event
+    io.emit('doctor-deleted', {
+      doctorId: doctor._id
+    });
+
+    res.json({
+      message: 'Doctor deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete error:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // PUT book a slot
 router.put('/:id/book', async (req, res) => {
   try {
