@@ -4,10 +4,12 @@ import Booking from "../models/bookingModel.js";
 // @route   POST /api/bookings
 export const createBooking = async (req, res) => {
   try {
+    console.log('Received booking request:', req.body);
     const { patientName, doctorId, date, time } = req.body;
 
     // Validate required fields
     if (!patientName || !doctorId || !date || !time) {
+      console.log('Missing required fields:', { patientName, doctorId, date, time });
       return res.status(400).json({ 
         message: 'All fields are required',
         missingFields: {
@@ -28,6 +30,7 @@ export const createBooking = async (req, res) => {
     });
     
     if (existingBooking) {
+      console.log('Slot already booked:', existingBooking);
       return res.status(400).json({ message: 'This slot is already booked' });
     }
     
@@ -38,7 +41,9 @@ export const createBooking = async (req, res) => {
       time 
     });
     
+    console.log('Attempting to save booking:', booking);
     await booking.save();
+    console.log('Booking saved successfully:', booking);
 
     // Get the io instance from the app
     const io = req.app.get('io');
