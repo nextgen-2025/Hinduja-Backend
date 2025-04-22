@@ -198,4 +198,42 @@ router.get('/:id/slots', async (req, res) => {
   }
 });
 
+// GET queue information for a specific doctor on a specific date
+router.get('/:id/queue/:date', async (req, res) => {
+  try {
+    const { id, date } = req.params;
+    const doctor = await DoctorSlot.findById(id);
+    
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Get all bookings for this doctor on this date
+    const bookings = await Booking.find({
+      doctorId: id,
+      date: date,
+      status: 'confirmed'
+    }).sort({ time: 1 }); // Sort by time to maintain queue order
+
+    // Create a queue with position information
+    const queue = bookings.map((booking, index) => ({
+      position: index + 1,
+      patientName: booking.patientName,
+      time: booking.time,
+      status: booking.status
+    }));
+
+    res.json({
+      doctorName: doctor.name,
+      doctorSpecialization: doctor.specialization,
+      date: date,
+      queue: queue,
+      totalPatients: queue.length
+    });
+  } catch (error) {
+    console.error('Queue fetch error:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 export default router;
