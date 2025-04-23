@@ -24,7 +24,7 @@ const io = new Server(server, {
 // Make io instance available to routes
 app.set('io', io)
 
-const port = process.env.PORT || 4000
+const port = process.env.PORT || 8080
 
 // Connect to MongoDB
 connectDB().catch(err => {
