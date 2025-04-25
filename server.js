@@ -62,7 +62,7 @@ io.on('connection', socket => {
 });
 
 app.get("/", (req, res) => {
-  res.send("API Working..")
+  res.send("API Working")
 });
 
 server.listen(port, () => {
