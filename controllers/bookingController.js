@@ -4,61 +4,78 @@ import Booking from "../models/bookingModel.js";
 // @route   POST /api/bookings
 export const createBooking = async (req, res) => {
   try {
-    console.log('Received booking request:', req.body);
-    const { patientName, doctorId, date, time } = req.body;
+    console.log("Received booking request:", req.body);
+    // Extract patientId with fallback to empty string for validation to catch
+    const { patientName, doctorId, date, time, patientId = "" } = req.body;
+
+    // Log the booking data for debugging
+    console.log("Creating booking with data:", {
+      patientId,
+      patientName,
+      doctorId,
+      date,
+      time,
+      fullBody: req.body,
+    });
 
     // Validate required fields
-    if (!patientName || !doctorId || !date || !time) {
-      console.log('Missing required fields:', { patientName, doctorId, date, time });
-      return res.status(400).json({ 
-        message: 'All fields are required',
+    if (!patientId || !patientName || !doctorId || !date || !time) {
+      console.log("Missing required fields:", {
+        patientName,
+        doctorId,
+        date,
+        time,
+        patientId,
+      });
+      return res.status(400).json({
+        message: "All fields are required",
         missingFields: {
+          patientId: !patientId,
           patientName: !patientName,
           doctorId: !doctorId,
           date: !date,
-          time: !time
-        }
+          time: !time,
+        },
       });
     }
 
-    // Check if slot is already booked
-    const existingBooking = await Booking.findOne({ 
-      doctorId, 
-      date, 
-      time,
-      status: { $ne: 'cancelled' }
-    });
-    
-    if (existingBooking) {
-      console.log('Slot already booked:', existingBooking);
-      return res.status(400).json({ message: 'This slot is already booked' });
-    }
-    
-    const booking = new Booking({ 
-      patientName, 
+    const existingBooking = await Booking.findOne({
+      patientId,
       doctorId,
-      date, 
-      time 
+      date,
+      time,
+      status: { $ne: "cancelled" },
     });
-    
-    console.log('Attempting to save booking:', booking);
-    await booking.save();
-    console.log('Booking saved successfully:', booking);
 
-    // Get the io instance from the app
-    const io = req.app.get('io');
-    // Emit the slot-updated event to all connected clients
-    io.emit('slot-updated', { doctorId, date, time });
+    if (existingBooking) {
+      console.log("Slot already booked:", existingBooking);
+      return res.status(400).json({ message: "This slot is already booked" });
+    }
+
+    const booking = new Booking({
+      patientId,
+      patientName,
+      doctorId,
+      date,
+      time,
+    });
+
+    console.log("Attempting to save booking:", booking);
+    await booking.save();
+    console.log("Booking saved successfully:", booking);
+
+    const io = req.app.get("io");
+    io.emit("slot-updated", { doctorId, date, time });
 
     res.status(201).json({
-      message: 'Booking created successfully',
-      booking
+      message: "Booking created successfully",
+      booking,
     });
   } catch (err) {
-    console.error('Booking error:', err);
-    res.status(500).json({ 
-      message: 'Server Error',
-      error: err.message 
+    console.error("Booking error:", err);
+    res.status(500).json({
+      message: "Server Error",
+      error: err.message,
     });
   }
 };
@@ -71,7 +88,7 @@ export const getAllBookings = async (req, res) => {
     res.status(200).json(bookings);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -81,11 +98,33 @@ export const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
+      return res.status(404).json({ message: "Booking not found" });
     }
     res.status(200).json(booking);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
-}; 
+};
+
+export const updateBookingStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedBooking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.status(200).json({ message: "Booking status updated successfully", booking: updatedBooking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error updating status", error: err.message });
+  }
+};

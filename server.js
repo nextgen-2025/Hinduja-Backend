@@ -46,6 +46,12 @@ app.use("/api/doctor", doctorRouter)
 app.use("/api/bookings", bookingRouter)
 app.use("/api/doctors", doctorsRouter)
 
+
+app.get("/", (req, res) => {
+  res.send("API Working")
+})
+
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -61,9 +67,6 @@ io.on('connection', socket => {
   });
 });
 
-app.get("/", (req, res) => {
-  res.send("API Working")
-});
 
 server.listen(port, () => {
   console.log(`Server started on http://localhost:${port}`);
