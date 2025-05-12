@@ -10,6 +10,7 @@ import doctorRouter from "./routes/doctorRoute.js"
 import adminRouter from "./routes/adminRoute.js"
 import bookingRouter from "./routes/bookingRoute.js"  
 import doctorsRouter from './routes/slotsDoctorData.js';
+import departmentRouter from './routes/departmentRoute.js';
 
 // app config
 const app = express()
@@ -45,7 +46,7 @@ app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 app.use("/api/bookings", bookingRouter)
 app.use("/api/doctors", doctorsRouter)
-
+app.use("/api/departments", departmentRouter)
 
 app.get("/", (req, res) => {
   res.send("API Working")

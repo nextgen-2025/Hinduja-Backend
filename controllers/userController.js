@@ -7,6 +7,9 @@ import appointmentModel from "../models/appointmentModel.js";
 import { v2 as cloudinary } from 'cloudinary'
 import stripe from "stripe";
 import razorpay from 'razorpay';
+// Add this import at the top
+import visitMemoModel from "../models/visitMemoModel.js";
+import departmentVisitModel from "../models/departmentVisitModel.js";
 
 // Gateway Initialize
 const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
@@ -363,6 +366,8 @@ const verifyStripe = async (req, res) => {
 
 }
 
+
+
 export {
     loginUser,
     registerUser,
@@ -374,5 +379,62 @@ export {
     paymentRazorpay,
     verifyRazorpay,
     paymentStripe,
-    verifyStripe
+    verifyStripe,
 }
+
+// Add this function to your exports
+export const getUserVisitMemos = async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      // First get the user's patientId
+      const user = await userModel.findById(userId);
+      if (!user) {
+        return res.json({ success: false, message: "User not found" });
+      }
+      
+      // Find active memos for this user using patientId
+      const memos = await visitMemoModel.find({
+        patientId: user.patientId,
+        status: "active"
+      })
+      .sort({ createdAt: -1 });
+      
+      // For each memo, get the latest status of each department visit
+      const memosWithStatus = await Promise.all(memos.map(async (memo) => {
+        const memoObj = memo.toObject();
+        
+        // For each department in the memo, get the visit status if it exists
+        for (let i = 0; i < memoObj.departments.length; i++) {
+          const dept = memoObj.departments[i];
+          if (dept.visitId) {
+            try {
+              // Try to find visit without assuming ObjectId
+              const visit = await departmentVisitModel.findOne({ 
+                $or: [
+                  { _id: dept.visitId },
+                  { visitId: dept.visitId }
+                ]
+              });
+              
+              if (visit) {
+                memoObj.departments[i].status = visit.status;
+              }
+            } catch (err) {
+              console.log(`Error fetching visit status: ${err.message}`);
+              // Continue processing other departments even if one fails
+              continue;
+            }
+          }
+        }
+        
+        return memoObj;
+      }));
+      
+      res.json({ success: true, memos: memosWithStatus });
+    } catch (error) {
+      console.log(error);
+      res.json({ success: false, message: error.message });
+    }
+};
+
